@@ -3890,15 +3890,26 @@
 			}
 		});
 	}
-	// 拦截点击输入框时的默认聚焦滚动（Edge 会因 sticky 头部滚正文）
-	if (box) box.addEventListener("mousedown", function (e) {
-		e.preventDefault();
-		if (document.activeElement !== box) {
-			box.focus({ preventScroll: true });
-		}
+	// 记录点击前滚动位置；不 preventDefault，保留文字选择
+	if (box) box.addEventListener("pointerdown", function () {
+		guardY = window.scrollY || window.pageYOffset;
 	});
 	if (box) box.addEventListener("input", function () { guardY = window.scrollY || window.pageYOffset; clearTimeout(tmr); tmr = setTimeout(function () { runSearch(); guardScroll(); }, 120); });
-	if (box) box.addEventListener("focus", function () { guardY = window.scrollY || window.pageYOffset; lockScroll(true); if (!norm(box.value)) showHistory(); requestAnimationFrame(guardScroll); });
+	if (box) box.addEventListener("focus", function () {
+		lockScroll(true);
+		if (!norm(box.value)) showHistory();
+		// 浏览器聚焦可能滚了页面，拉回 pointerdown 记录的位置
+		var y = guardY;
+		if (y !== null) {
+			requestAnimationFrame(function () {
+				requestAnimationFrame(function () {
+					if (Math.abs((window.scrollY || 0) - y) > 2) {
+						window.scrollTo(0, y);
+					}
+				});
+			});
+		}
+	});
 	if (box) box.addEventListener("blur", function () { guardY = null; lockScroll(false); });
 	if (box) box.addEventListener("keydown", function (e) {
 		if (e.key === "Enter") {
