@@ -842,6 +842,27 @@ article.article {
   background: #ffeaa0;
 }
 
+.search-panel mark {
+  background: #fff3a0;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.search-panel .sr-snip mark {
+  background: #ffe066;
+}
+
+/* 键盘/交互态 */
+.search-panel .sr-list a:focus {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+#searchBox {
+  min-width: 220px;
+}
+
 .hidden-by-search {
   display: none !important;
 }
