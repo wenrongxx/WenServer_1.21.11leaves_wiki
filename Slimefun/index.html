@@ -3874,9 +3874,19 @@
 	}
 
 	var tmr = null;
-	if (box) box.addEventListener("input", function () { clearTimeout(tmr); tmr = setTimeout(runSearch, 120); });
-	if (box) box.addEventListener("focus", function () { lockScroll(true); if (!norm(box.value)) showHistory(); });
-	if (box) box.addEventListener("blur", function () { lockScroll(false); });
+	var guardY = null;
+	function guardScroll() {
+		var y = guardY;
+		if (y === null) return;
+		requestAnimationFrame(function () {
+			if (guardY !== null && Math.abs((window.scrollY || 0) - guardY) > 2) {
+				window.scrollTo(0, guardY);
+			}
+		});
+	}
+	if (box) box.addEventListener("input", function () { guardY = window.scrollY || window.pageYOffset; clearTimeout(tmr); tmr = setTimeout(function () { runSearch(); guardScroll(); }, 120); });
+	if (box) box.addEventListener("focus", function () { guardY = window.scrollY || window.pageYOffset; lockScroll(true); if (!norm(box.value)) showHistory(); });
+	if (box) box.addEventListener("blur", function () { guardY = null; lockScroll(false); });
 	if (box) box.addEventListener("keydown", function (e) {
 		if (e.key === "Enter") {
 			e.preventDefault();
