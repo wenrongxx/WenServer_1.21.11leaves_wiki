@@ -90,6 +90,7 @@ code, .mono {
 
 .wiki-search {
   margin-left: auto;
+  position: relative;
   display: flex;
   gap: 0.35rem;
   align-items: center;
@@ -758,11 +759,19 @@ article.article {
 }
 
 .search-panel {
-  margin: 0 0 0.85rem;
-  padding: 0.65rem 0.85rem 0.75rem;
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(440px, 92vw);
+  max-height: min(64vh, 540px);
+  overflow: auto;
+  margin: 0;
+  padding: 0.6rem 0.8rem 0.7rem;
   border: 1px solid var(--line);
-  background: var(--infobox-bg);
-  border-radius: 2px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  z-index: 60;
 }
 
 .search-panel .sr-head {
@@ -865,6 +874,52 @@ article.article {
 
 .hidden-by-search {
   display: none !important;
+}
+
+/* 搜索历史 */
+.sr-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.sr-history .hist-tag {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.22rem 0.7rem;
+  font-size: 0.8rem;
+  background: #f8f9fa;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.sr-history .hist-tag:hover {
+  background: var(--link);
+  color: #fff;
+  border-color: var(--link);
+}
+
+.sr-head .hist-clear {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+}
+
+.sr-head .hist-clear:hover { color: var(--link); }
+
+/* 移动端：浮层左对齐、占满可用宽 */
+@media (max-width: 800px) {
+  .search-panel {
+    left: 0;
+    right: auto;
+    width: calc(100vw - 2rem);
+    max-width: 92vw;
+  }
 }
 
 /* back to hub */
