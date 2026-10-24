@@ -34,7 +34,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; scroll-padding-top: 3.2rem; }
+html { scroll-behavior: auto; scroll-padding-top: 3.2rem; overflow-anchor: none; }
 
 body {
   margin: 0;
@@ -742,6 +742,10 @@ details.spoiler .inner {
 }
 
 /* Search — prevent scroll jump while filtering */
+body {
+  overflow-anchor: none;
+}
+
 html.searching {
   scroll-behavior: auto !important;
 }
@@ -751,11 +755,11 @@ body.search-lock {
 }
 
 main.wiki-content {
-  overflow-anchor: auto;
+  overflow-anchor: none;
 }
 
 article.article {
-  overflow-anchor: auto;
+  overflow-anchor: none;
 }
 
 .search-panel {
