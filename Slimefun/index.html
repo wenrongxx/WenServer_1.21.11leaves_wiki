@@ -3824,7 +3824,13 @@
 		if (hc) hc.addEventListener("click", function () { clearHist(); showHistory(); });
 		var tags = panel.querySelectorAll(".hist-tag");
 		Array.prototype.forEach.call(tags, function (t) {
-			t.addEventListener("click", function () { box.value = t.getAttribute("data-q"); runSearch(); });
+			t.addEventListener("click", function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				box.value = t.getAttribute("data-q");
+				if (box.focus) box.focus({ preventScroll: true });
+				runSearch();
+			});
 		});
 	}
 
@@ -3884,8 +3890,15 @@
 			}
 		});
 	}
+	// 拦截点击输入框时的默认聚焦滚动（Edge 会因 sticky 头部滚正文）
+	if (box) box.addEventListener("mousedown", function (e) {
+		e.preventDefault();
+		if (document.activeElement !== box) {
+			box.focus({ preventScroll: true });
+		}
+	});
 	if (box) box.addEventListener("input", function () { guardY = window.scrollY || window.pageYOffset; clearTimeout(tmr); tmr = setTimeout(function () { runSearch(); guardScroll(); }, 120); });
-	if (box) box.addEventListener("focus", function () { guardY = window.scrollY || window.pageYOffset; lockScroll(true); if (!norm(box.value)) showHistory(); });
+	if (box) box.addEventListener("focus", function () { guardY = window.scrollY || window.pageYOffset; lockScroll(true); if (!norm(box.value)) showHistory(); requestAnimationFrame(guardScroll); });
 	if (box) box.addEventListener("blur", function () { guardY = null; lockScroll(false); });
 	if (box) box.addEventListener("keydown", function (e) {
 		if (e.key === "Enter") {
