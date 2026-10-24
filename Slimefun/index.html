@@ -3716,6 +3716,78 @@
 		return e.id;
 	}
 
+	// —— 正文高亮 + 精确滚动 ——
+	function clearMarks(root) {
+		var marks = (root || document).querySelectorAll("mark.search-mark");
+		Array.prototype.forEach.call(marks, function (m) {
+			var p = m.parentNode;
+			if (p) { p.replaceChild(document.createTextNode(m.textContent), m); p.normalize(); }
+		});
+	}
+
+	function markTokens(art, toks) {
+		var pat = toks.map(reEscape).join("|");
+		if (!pat) return;
+		var re = new RegExp("(" + pat + ")", "gi");
+		var walker = document.createTreeWalker(art, NodeFilter.SHOW_TEXT, {
+			acceptNode: function (node) {
+				var p = node.parentNode;
+				if (!p) return NodeFilter.FILTER_REJECT;
+				var tag = p.tagName;
+				if (tag === "MARK" || tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return NodeFilter.FILTER_REJECT;
+				if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
+				re.lastIndex = 0;
+				return re.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+			}
+		});
+		var nodes = [];
+		while (walker.nextNode()) nodes.push(walker.currentNode);
+		nodes.forEach(function (node) {
+			var text = node.nodeValue;
+			var parent = node.parentNode;
+			var frag = document.createDocumentFragment();
+			var last = 0, m;
+			re.lastIndex = 0;
+			while ((m = re.exec(text)) !== null) {
+				if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+				var mark = document.createElement("mark");
+				mark.className = "search-mark";
+				mark.textContent = m[0];
+				frag.appendChild(mark);
+				last = m.index + m[0].length;
+				if (m.index === re.lastIndex) re.lastIndex++;
+			}
+			if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+			parent.replaceChild(frag, node);
+		});
+	}
+
+	function jumpToMatch(aid, q) {
+		clearMarks(document);
+		var art = document.getElementById(aid);
+		if (!art) return;
+		var toks = tokenGroups(q).map(function (g) { return g[0]; });
+		markTokens(art, toks);
+		var first = art.querySelector("mark.search-mark");
+		if (first) {
+			first.scrollIntoView({ behavior: "smooth", block: "center" });
+		} else {
+			art.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
+		try { history.replaceState(null, "", "#" + aid); } catch (err) {}
+	}
+
+	// 输入时锁滚动，避免 Edge 正文随输入滚动
+	function lockScroll(lock) {
+		if (lock) {
+			document.documentElement.classList.add("searching");
+			if (document.body) document.body.classList.add("search-lock");
+		} else {
+			document.documentElement.classList.remove("searching");
+			if (document.body) document.body.classList.remove("search-lock");
+		}
+	}
+
 	// —— 搜索历史（localStorage）——
 	var HIST_KEY = "wiki_search_history_v1";
 	function loadHist() { try { return JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); } catch (err) { return []; } }
@@ -3747,7 +3819,7 @@
 
 	function bindPanel() {
 		var c = document.getElementById("srClear");
-		if (c) c.addEventListener("click", function () { box.value = ""; panel.hidden = true; panel.innerHTML = ""; box.focus(); });
+		if (c) c.addEventListener("click", function () { clearMarks(document); box.value = ""; panel.hidden = true; panel.innerHTML = ""; box.focus(); });
 		var hc = document.getElementById("histClear");
 		if (hc) hc.addEventListener("click", function () { clearHist(); showHistory(); });
 		var tags = panel.querySelectorAll(".hist-tag");
@@ -3781,7 +3853,7 @@
 			list = '<ul class="sr-list">' + results.slice(0, 50).map(function (r) {
 				var anchor = bestSection(r.e, plain);
 				var snip = snippet(r.e.body, plain);
-				return '<li><a href="#' + anchor + '" data-q="' + esc(q) + '">' + hi(r.e.title, plain) + '</a>' +
+				return '<li><a href="#' + anchor + '" data-aid="' + r.e.id + '" data-q="' + esc(q) + '">' + hi(r.e.title, plain) + '</a>' +
 					(r.e.crumbs ? '<div class="sr-snip">' + esc(r.e.crumbs) + '</div>' : '') +
 					(snip ? '<div class="sr-snip">' + snip + '</div>' : '') + '</li>';
 			}).join("") + '</ul>';
@@ -3792,23 +3864,26 @@
 		bindPanel();
 		var links = panel.querySelectorAll(".sr-list a");
 		Array.prototype.forEach.call(links, function (a) {
-			a.addEventListener("click", function () {
+			a.addEventListener("click", function (ev) {
+				ev.preventDefault();
 				saveHist(a.getAttribute("data-q") || q);
 				panel.hidden = true;
+				jumpToMatch(a.getAttribute("data-aid"), a.getAttribute("data-q") || q);
 			});
 		});
 	}
 
 	var tmr = null;
 	if (box) box.addEventListener("input", function () { clearTimeout(tmr); tmr = setTimeout(runSearch, 120); });
-	if (box) box.addEventListener("focus", function () { if (!norm(box.value)) showHistory(); });
+	if (box) box.addEventListener("focus", function () { lockScroll(true); if (!norm(box.value)) showHistory(); });
+	if (box) box.addEventListener("blur", function () { lockScroll(false); });
 	if (box) box.addEventListener("keydown", function (e) {
 		if (e.key === "Enter") {
 			e.preventDefault();
 			var a = panel.querySelector(".sr-list a");
-			if (a) { saveHist(norm(box.value)); location.hash = a.getAttribute("href"); panel.hidden = true; }
+			if (a) { saveHist(norm(box.value)); panel.hidden = true; jumpToMatch(a.getAttribute("data-aid"), norm(box.value)); }
 		}
-		if (e.key === "Escape") { box.value = ""; panel.hidden = true; panel.innerHTML = ""; if (box.blur) box.blur(); }
+		if (e.key === "Escape") { clearMarks(document); box.value = ""; panel.hidden = true; panel.innerHTML = ""; lockScroll(false); if (box.blur) box.blur(); }
 	});
 	document.addEventListener("click", function (e) {
 		if (panel && !panel.hidden) {
