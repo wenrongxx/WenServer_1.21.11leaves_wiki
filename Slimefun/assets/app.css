@@ -34,7 +34,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: auto; scroll-padding-top: 3.2rem; overflow-anchor: none; }
+html { scroll-behavior: auto; overflow-anchor: none; }
 
 body {
   margin: 0;
@@ -261,6 +261,12 @@ code, .mono {
   margin: 1.25rem 0 1.75rem;
   padding-top: 0.25rem;
   scroll-margin-top: 3.5rem;
+}
+
+.article h1,
+.article h2,
+.article h3 {
+  scroll-margin-top: 4.2rem;
 }
 
 .article + .article {
