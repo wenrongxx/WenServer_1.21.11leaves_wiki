@@ -763,10 +763,7 @@ article.article {
 }
 
 .search-panel {
-  position: absolute;
-  top: calc(100% + 0.4rem);
-  right: 0;
-  width: min(440px, 92vw);
+  position: fixed;
   max-height: min(64vh, 540px);
   overflow: auto;
   margin: 0;
@@ -927,14 +924,7 @@ mark.search-mark {
 .sr-head .hist-clear:hover { color: var(--link); }
 
 /* 移动端：浮层左对齐、占满可用宽 */
-@media (max-width: 800px) {
-  .search-panel {
-    left: 0;
-    right: auto;
-    width: calc(100vw - 2rem);
-    max-width: 92vw;
-  }
-}
+
 
 /* back to hub */
 .back-bar {
