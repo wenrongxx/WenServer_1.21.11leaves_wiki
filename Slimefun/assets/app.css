@@ -862,6 +862,16 @@ article.article {
   background: #ffe066;
 }
 
+/* 正文搜索高亮 */
+mark.search-mark {
+  background: #ffd54d;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+  scroll-margin-top: 4.5rem;
+  scroll-margin-bottom: 4.5rem;
+}
+
 /* 键盘/交互态 */
 .search-panel .sr-list a:focus {
   outline: 2px solid var(--link);
