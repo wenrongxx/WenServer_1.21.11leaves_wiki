@@ -3808,6 +3808,19 @@
 		}).join("") + '</div>';
 	}
 
+	function positionPanel() {
+		if (!box || !panel || panel.hidden) return;
+		var r = box.getBoundingClientRect();
+		var vw = window.innerWidth || document.documentElement.clientWidth;
+		var w = Math.min(440, vw - 16);
+		var left = r.right - w;
+		if (left < 8) left = 8;
+		if (left + w > vw - 8) left = vw - 8 - w;
+		panel.style.top = (r.bottom + 6) + "px";
+		panel.style.left = left + "px";
+		panel.style.width = w + "px";
+	}
+
 	function showHistory() {
 		if (!panel) return;
 		var h = loadHist();
@@ -3815,6 +3828,7 @@
 		panel.hidden = false;
 		panel.innerHTML = '<div class="sr-head"><span class="sr-meta">最近搜索</span><button type="button" class="hist-clear" id="histClear">清除记录</button></div>' + renderHistory();
 		bindPanel();
+		positionPanel();
 	}
 
 	function bindPanel() {
@@ -3853,6 +3867,7 @@
 		}
 		results.sort(function (a, b) { return b.score - a.score; });
 		panel.hidden = false;
+		positionPanel();
 		var head = '<div class="sr-head"><span class="sr-meta">共 ' + results.length + ' 个结果</span><button type="button" class="sr-clear" id="srClear">清空</button></div>';
 		var list;
 		if (results.length) {
@@ -3890,22 +3905,24 @@
 			}
 		});
 	}
-	// 记录点击前滚动位置；不 preventDefault，保留文字选择
-	if (box) box.addEventListener("pointerdown", function () {
+	// 未聚焦时拦截默认聚焦滚动（Edge 会滚正文）；已聚焦时放行默认行为以支持文字选择
+	if (box) box.addEventListener("mousedown", function (e) {
 		guardY = window.scrollY || window.pageYOffset;
+		if (document.activeElement !== box) {
+			e.preventDefault();
+			box.focus({ preventScroll: true });
+		}
 	});
 	if (box) box.addEventListener("input", function () { guardY = window.scrollY || window.pageYOffset; clearTimeout(tmr); tmr = setTimeout(function () { runSearch(); guardScroll(); }, 120); });
 	if (box) box.addEventListener("focus", function () {
 		lockScroll(true);
 		if (!norm(box.value)) showHistory();
-		// 浏览器聚焦可能滚了页面，拉回 pointerdown 记录的位置
 		var y = guardY;
 		if (y !== null) {
+			window.scrollTo(0, y);
 			requestAnimationFrame(function () {
 				requestAnimationFrame(function () {
-					if (Math.abs((window.scrollY || 0) - y) > 2) {
-						window.scrollTo(0, y);
-					}
+					if (Math.abs((window.scrollY || 0) - y) > 2) window.scrollTo(0, y);
 				});
 			});
 		}
@@ -3927,6 +3944,7 @@
 	});
 	var sbtn = document.getElementById("searchBtn");
 	if (sbtn) sbtn.addEventListener("click", runSearch);
+	window.addEventListener("resize", function () { if (panel && !panel.hidden) positionPanel(); });
 
 })();
 
