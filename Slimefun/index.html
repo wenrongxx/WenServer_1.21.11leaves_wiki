@@ -40,6 +40,8 @@
 
 			<button type="button" id="searchBtn">搜索</button>
 
+			<div class="search-panel" id="searchPanel" hidden></div>
+
 		</div>
 
 	</div>
@@ -143,8 +145,6 @@
 </aside>
 
 	<main class="wiki-content">
-
-		<div class="search-panel" id="searchPanel" hidden></div>
 
 
 
@@ -3615,24 +3615,34 @@
 		"quarry": ["矿机","采石"], "infinity": ["无尽"], "chick": ["鸡","基因鸡"]
 	};
 
-	function esc(s) { return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+	function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
 	function norm(s) { return (s || "").trim().toLowerCase(); }
 
+	function reEscape(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+	// 索引：给每个 h3 分配锚点 id，供精确跳转
 	var index = articles.map(function (art) {
 		var titleEl = art.querySelector("h1, h2");
 		var crumbs = art.querySelector(".breadcrumbs");
-		var heads = Array.prototype.map.call(art.querySelectorAll("h3"), function (h) { return h.textContent; }).join(" ");
+		var hs = Array.prototype.slice.call(art.querySelectorAll("h3"));
+		var sections = hs.map(function (h, i) {
+			var id = art.id + "__s" + i;
+			h.id = id;
+			return { id: id, text: norm(h.textContent) };
+		});
+		var heads = sections.map(function (s) { return s.text; }).join(" ");
 		var kw = art.getAttribute("data-search") || "";
 		var body = art.textContent || "";
 		return {
 			id: art.id,
 			title: titleEl ? titleEl.textContent.trim() : art.id,
 			crumbs: crumbs ? crumbs.textContent.trim() : "",
+			sections: sections,
 			fields: [
 				{ w: 100, t: norm(titleEl ? titleEl.textContent : "") },
 				{ w: 55, t: norm(kw) },
-				{ w: 35, t: norm(heads) },
+				{ w: 35, t: heads },
 				{ w: 6, t: norm(body) }
 			],
 			body: body
@@ -3641,7 +3651,7 @@
 
 	function hi(s, toks) {
 		var safe = esc(s);
-		var pat = toks.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("|");
+		var pat = toks.map(function (t) { return reEscape(t); }).join("|");
 		if (!pat) return safe;
 		return safe.replace(new RegExp("(" + pat + ")", "gi"), "<mark>$1</mark>");
 	}
@@ -3659,9 +3669,6 @@
 		return hi(s.replace(/\s+/g, " "), toks);
 	}
 
-	function reEscape(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
-
-	// 别名组：原词 + 同义词，组内 OR、组间 AND
 	function tokenGroups(q) {
 		return norm(q).split(/\s+/).filter(Boolean).map(function (t) {
 			var g = [t];
@@ -3674,7 +3681,7 @@
 	function fieldHit(fieldText, tk, prefix) {
 		if (fieldText.indexOf(tk) !== -1) return true;
 		if (prefix && tk.length >= 2) {
-			return new RegExp("(^|[\\s/])" + reEscape(tk)).test(fieldText);
+			return new RegExp("(^|[\s/])" + reEscape(tk)).test(fieldText);
 		}
 		return false;
 	}
@@ -3698,10 +3705,61 @@
 		return total;
 	}
 
+	// 精确跳转：返回第一个命中查询词的小节锚点，否则章节顶部
+	function bestSection(e, plain) {
+		for (var i = 0; i < plain.length; i++) {
+			var tk = plain[i];
+			for (var j = 0; j < e.sections.length; j++) {
+				if (e.sections[j].text.indexOf(tk) !== -1) return e.sections[j].id;
+			}
+		}
+		return e.id;
+	}
+
+	// —— 搜索历史（localStorage）——
+	var HIST_KEY = "wiki_search_history_v1";
+	function loadHist() { try { return JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); } catch (err) { return []; } }
+	function saveHist(q) {
+		if (!q) return;
+		var h = loadHist().filter(function (x) { return x !== q; });
+		h.unshift(q);
+		h = h.slice(0, 8);
+		try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch (err) {}
+	}
+	function clearHist() { try { localStorage.removeItem(HIST_KEY); } catch (err) {} }
+
+	function renderHistory() {
+		var h = loadHist();
+		if (!h.length) return "";
+		return '<div class="sr-history">' + h.map(function (q) {
+			return '<button type="button" class="hist-tag" data-q="' + esc(q) + '">' + esc(q) + '</button>';
+		}).join("") + '</div>';
+	}
+
+	function showHistory() {
+		if (!panel) return;
+		var h = loadHist();
+		if (!h.length) { panel.hidden = true; panel.innerHTML = ""; return; }
+		panel.hidden = false;
+		panel.innerHTML = '<div class="sr-head"><span class="sr-meta">最近搜索</span><button type="button" class="hist-clear" id="histClear">清除记录</button></div>' + renderHistory();
+		bindPanel();
+	}
+
+	function bindPanel() {
+		var c = document.getElementById("srClear");
+		if (c) c.addEventListener("click", function () { box.value = ""; panel.hidden = true; panel.innerHTML = ""; box.focus(); });
+		var hc = document.getElementById("histClear");
+		if (hc) hc.addEventListener("click", function () { clearHist(); showHistory(); });
+		var tags = panel.querySelectorAll(".hist-tag");
+		Array.prototype.forEach.call(tags, function (t) {
+			t.addEventListener("click", function () { box.value = t.getAttribute("data-q"); runSearch(); });
+		});
+	}
+
 	function runSearch() {
 		var q = norm(box.value);
 		if (!panel) return;
-		if (!q) { panel.hidden = true; panel.innerHTML = ""; return; }
+		if (!q) { showHistory(); return; }
 		var groups = tokenGroups(q);
 		var plain = groups.map(function (g) { return g[0]; });
 		var results = [];
@@ -3721,8 +3779,9 @@
 		var list;
 		if (results.length) {
 			list = '<ul class="sr-list">' + results.slice(0, 50).map(function (r) {
+				var anchor = bestSection(r.e, plain);
 				var snip = snippet(r.e.body, plain);
-				return '<li><a href="#' + r.e.id + '">' + hi(r.e.title, plain) + '</a>' +
+				return '<li><a href="#' + anchor + '" data-q="' + esc(q) + '">' + hi(r.e.title, plain) + '</a>' +
 					(r.e.crumbs ? '<div class="sr-snip">' + esc(r.e.crumbs) + '</div>' : '') +
 					(snip ? '<div class="sr-snip">' + snip + '</div>' : '') + '</li>';
 			}).join("") + '</ul>';
@@ -3730,15 +3789,32 @@
 			list = '<div class="search-empty">无匹配结果。试试更短的关键词、中文名或英文名（如 lucky、electric、ore）。</div>';
 		}
 		panel.innerHTML = head + list;
-		var c = document.getElementById("srClear");
-		if (c) c.addEventListener("click", function () { box.value = ""; panel.hidden = true; panel.innerHTML = ""; box.focus(); });
+		bindPanel();
+		var links = panel.querySelectorAll(".sr-list a");
+		Array.prototype.forEach.call(links, function (a) {
+			a.addEventListener("click", function () {
+				saveHist(a.getAttribute("data-q") || q);
+				panel.hidden = true;
+			});
+		});
 	}
 
 	var tmr = null;
 	if (box) box.addEventListener("input", function () { clearTimeout(tmr); tmr = setTimeout(runSearch, 120); });
+	if (box) box.addEventListener("focus", function () { if (!norm(box.value)) showHistory(); });
 	if (box) box.addEventListener("keydown", function (e) {
-		if (e.key === "Enter") { e.preventDefault(); var a = panel.querySelector(".sr-list a"); if (a) location.hash = a.getAttribute("href"); }
-		if (e.key === "Escape") { box.value = ""; panel.hidden = true; panel.innerHTML = ""; }
+		if (e.key === "Enter") {
+			e.preventDefault();
+			var a = panel.querySelector(".sr-list a");
+			if (a) { saveHist(norm(box.value)); location.hash = a.getAttribute("href"); panel.hidden = true; }
+		}
+		if (e.key === "Escape") { box.value = ""; panel.hidden = true; panel.innerHTML = ""; if (box.blur) box.blur(); }
+	});
+	document.addEventListener("click", function (e) {
+		if (panel && !panel.hidden) {
+			var inSearch = e.target && e.target.closest && e.target.closest(".wiki-search");
+			if (!inSearch) panel.hidden = true;
+		}
 	});
 	var sbtn = document.getElementById("searchBtn");
 	if (sbtn) sbtn.addEventListener("click", runSearch);
