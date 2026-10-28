@@ -1,0 +1,155 @@
+/* WenServer Wiki 通用搜索样式（覆盖各页 app.css，需在 app.css 之后加载） */
+.wiki-search {
+  position: relative;
+}
+
+.search-panel {
+  position: fixed;
+  max-height: min(64vh, 540px);
+  overflow: auto;
+  margin: 0;
+  padding: 0.6rem 0.8rem 0.7rem;
+  border: 1px solid var(--line, #c8ccd1);
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  z-index: 60;
+}
+
+.search-panel .sr-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.search-panel .sr-meta {
+  color: var(--muted, #54595d);
+  font-size: 0.86rem;
+}
+
+.search-panel .sr-clear {
+  margin-left: auto;
+  border: 1px solid var(--line, #c8ccd1);
+  background: #fff;
+  border-radius: 2px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--ink, #202122);
+}
+
+.search-panel .sr-clear:hover { background: #eaecf0; }
+
+.search-panel .sr-list {
+  margin: 0;
+  padding-left: 1.4rem;
+  max-height: 420px;
+  overflow: auto;
+  font-size: 0.92rem;
+}
+
+.search-panel .sr-list li {
+  margin: 0.25rem 0;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px dashed var(--line-soft, #eaecf0);
+}
+
+.search-panel .sr-list li:last-child { border-bottom: none; }
+
+.search-panel .sr-list a {
+  color: var(--link, #3366cc);
+  font-weight: 600;
+}
+
+.search-panel .sr-list .sr-snip {
+  margin: 0.1rem 0 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted, #54595d);
+  line-height: 1.45;
+}
+
+.search-panel .sr-list a:focus {
+  outline: 2px solid var(--link, #3366cc);
+  outline-offset: 1px;
+}
+
+.search-empty {
+  margin: 0 0 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line, #c8ccd1);
+  background: var(--warn-bg, #fef6e7);
+  color: var(--ink, #202122);
+  font-size: 0.9rem;
+}
+
+.search-panel mark {
+  background: #fff3a0;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.search-panel .sr-snip mark {
+  background: #ffe066;
+}
+
+/* 搜索历史 */
+.sr-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.sr-history .hist-tag {
+  border: 1px solid var(--line, #c8ccd1);
+  border-radius: 999px;
+  padding: 0.22rem 0.7rem;
+  font-size: 0.8rem;
+  background: #f8f9fa;
+  color: var(--ink, #202122);
+  cursor: pointer;
+}
+
+.sr-history .hist-tag:hover {
+  background: var(--link, #3366cc);
+  color: #fff;
+  border-color: var(--link, #3366cc);
+}
+
+.sr-head .hist-clear {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--muted, #54595d);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+}
+
+.sr-head .hist-clear:hover { color: var(--link, #3366cc); }
+
+/* 正文搜索高亮 */
+mark.search-mark {
+  background: #ffd54d;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+  scroll-margin-top: 4.5rem;
+  scroll-margin-bottom: 4.5rem;
+}
+
+/* 输入时锁定滚动 */
+html.searching {
+  scroll-behavior: auto !important;
+}
+
+body.search-lock {
+  overflow-anchor: none;
+}
+
+#searchBox {
+  min-width: 180px;
+}
